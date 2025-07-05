@@ -12,6 +12,7 @@
   "description": "Express backend for AI pipeline with upload and analysis endpoints.",
   "dependencies": {
     "@google/genai": "^1.8.0",
+    "cors": "^2.8.5",
     "dotenv": "^17.0.1",
     "express": "^5.1.0",
     "multer": "^2.0.1"
