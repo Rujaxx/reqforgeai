@@ -8,7 +8,6 @@ app.use(express.json());
 // Routes
 app.use('/upload', require('./routes/upload.route'));
 
-
 // Root endpoint
 app.get('/', (req, res) => {
   res.send('Backend API is running');
