@@ -66,9 +66,9 @@ function CopiableAnalysis({ analysisResults }) {
       if (data.requirementsMatrix && data.requirementsMatrix.length > 0) {
         html += '<h3>Requirements Matrix</h3>';
         html += '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:monospace;font-size:1em;width:100%">';
-        html += '<thead><tr style="background:#f5f5f5"><th>#</th><th>Element</th><th>Type</th><th>Behavior</th><th>Data Source</th></tr></thead><tbody>';
+        html += '<thead><tr style="background:#f5f5f5"><th>#</th><th>Element</th><th>Type</th><th>Behavior</th><th>Data Source</th><th>Vaildation Rules</th><th>Error Hanlding</th><th>Business Rules</th><th>Notes</th></tr></thead><tbody>';
         data.requirementsMatrix.forEach((r, i) => {
-          html += `<tr><td>${i + 1}</td><td>${r.uiElement}</td><td>${r.elementType}</td><td>${r.behavior}</td><td>${r.dataSource}</td></tr>`;
+          html += `<tr><td>${i + 1}</td><td>${r.uiElement}</td><td>${r.elementType}</td><td>${r.behavior}</td><td>${r.dataSource}</td><td>${r.validationRules}</td><td>${r.errorHandling}</td><td>${r.businessRules}</td><td>${r.notes}</td></tr>`;
         });
         html += '</tbody></table><br/>';
       }
@@ -143,6 +143,10 @@ function CopiableAnalysis({ analysisResults }) {
                 <th style={{ border: '1px solid #ccc', padding: '8px' }}>Type</th>
                 <th style={{ border: '1px solid #ccc', padding: '8px' }}>Behavior</th>
                 <th style={{ border: '1px solid #ccc', padding: '8px' }}>Data Source</th>
+                <th style={{ border: '1px solid #ccc', padding: '8px' }}>Validation Rules</th>
+                <th style={{ border: '1px solid #ccc', padding: '8px' }}>Error Hanlding</th>
+                <th style={{ border: '1px solid #ccc', padding: '8px' }}>Business Rules</th>
+                <th style={{ border: '1px solid #ccc', padding: '8px' }}>Notes</th>
               </tr>
             </thead>
             <tbody>
@@ -153,6 +157,10 @@ function CopiableAnalysis({ analysisResults }) {
                   <td style={{ border: '1px solid #ccc', padding: '8px' }}>{r.elementType}</td>
                   <td style={{ border: '1px solid #ccc', padding: '8px' }}>{r.behavior}</td>
                   <td style={{ border: '1px solid #ccc', padding: '8px' }}>{r.dataSource}</td>
+                  <td style={{ border: '1px solid #ccc', padding: '8px' }}>{r.validationRules}</td>
+                  <td style={{ border: '1px solid #ccc', padding: '8px' }}>{r.errorHandling}</td>
+                  <td style={{ border: '1px solid #ccc', padding: '8px' }}>{r.businessRules}</td>
+                  <td style={{ border: '1px solid #ccc', padding: '8px' }}>{r.notes}</td>
                 </tr>
               ))}
             </tbody>
