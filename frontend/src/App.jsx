@@ -1,20 +1,181 @@
 import React, { useState, useRef } from 'react';
 import './App.css';
 
+function CopiableAnalysis({ analysisResults }) {
+  const textAreaRef = useRef(null);
+  const data = analysisResults.data || analysisResults.analysis || {};
+
+  // Format the analysis as a readable string
+  const formatAnalysis = (data) => {
+    if (!data) return '';
+    let formatted = '';
+    if (data.screenOverview) {
+      formatted += `Screen Name: ${data.screenOverview.screenName}\n`;
+      formatted += `Screen Type: ${data.screenOverview.screenType}\n`;
+      formatted += `Primary Purpose: ${data.screenOverview.primaryPurpose}\n`;
+      formatted += `User Role: ${data.screenOverview.userRole}\n`;
+      formatted += `Relationship To Previous Screens: ${data.screenOverview.relationshipToPreviousScreens}\n\n`;
+    }
+
+    if (data.functionalRequirements && data.functionalRequirements.length) {
+      formatted += 'Functional Requirements:\n';
+      data.functionalRequirements.forEach((f, i) => {
+        formatted += `  ${i + 1}. ${f}\n`;
+      });
+      formatted += '\n';
+    }
+    if (data.nonFunctionalRequirements && data.nonFunctionalRequirements.length) {
+      formatted += 'Non-Functional Requirements:\n';
+      data.nonFunctionalRequirements.forEach((n, i) => {
+        formatted += `  ${i + 1}. ${n}\n`;
+      });
+      formatted += '\n';
+    }
+    if (data.businessRules && data.businessRules.length) {
+      formatted += 'Business Rules:\n';
+      data.businessRules.forEach((b, i) => {
+        formatted += `  ${i + 1}. ${b}\n`;
+      });
+      formatted += '\n';
+    }
+    if (data.assumptionsMade && data.assumptionsMade.length) {
+      formatted += 'Assumptions Made:\n';
+      data.assumptionsMade.forEach((a, i) => {
+        formatted += `  ${i + 1}. ${a}\n`;
+      });
+      formatted += '\n';
+    }
+    return formatted;
+  };
+
+  const handleCopy = () => {
+    if (textAreaRef.current) {
+      // Try to copy as HTML table for requirementsMatrix, otherwise fallback to text
+      let html = '';
+      // Screen Overview as pre
+      if (data.screenOverview) {
+        html += `<pre>`;
+        html += `Screen Name: ${data.screenOverview.screenName}\n`;
+        html += `Screen Type: ${data.screenOverview.screenType}\n`;
+        html += `Primary Purpose: ${data.screenOverview.primaryPurpose}\n`;
+        html += `User Role: ${data.screenOverview.userRole}\n`;
+        html += `Relationship To Previous Screens: ${data.screenOverview.relationshipToPreviousScreens}\n\n`;
+        html += `</pre>`;
+      }
+      // Requirements Matrix as HTML table (after screenOverview)
+      if (data.requirementsMatrix && data.requirementsMatrix.length > 0) {
+        html += '<h3>Requirements Matrix</h3>';
+        html += '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:monospace;font-size:1em;width:100%">';
+        html += '<thead><tr style="background:#f5f5f5"><th>#</th><th>Element</th><th>Type</th><th>Behavior</th><th>Data Source</th></tr></thead><tbody>';
+        data.requirementsMatrix.forEach((r, i) => {
+          html += `<tr><td>${i + 1}</td><td>${r.uiElement}</td><td>${r.elementType}</td><td>${r.behavior}</td><td>${r.dataSource}</td></tr>`;
+        });
+        html += '</tbody></table><br/>';
+      }
+      // The rest as preformatted text
+      let rest = '';
+      if (data.functionalRequirements && data.functionalRequirements.length) {
+        rest += 'Functional Requirements:\n';
+        data.functionalRequirements.forEach((f, i) => {
+          rest += `  ${i + 1}. ${f}\n`;
+        });
+        rest += '\n';
+      }
+      if (data.nonFunctionalRequirements && data.nonFunctionalRequirements.length) {
+        rest += 'Non-Functional Requirements:\n';
+        data.nonFunctionalRequirements.forEach((n, i) => {
+          rest += `  ${i + 1}. ${n}\n`;
+        });
+        rest += '\n';
+      }
+      if (data.businessRules && data.businessRules.length) {
+        rest += 'Business Rules:\n';
+        data.businessRules.forEach((b, i) => {
+          rest += `  ${i + 1}. ${b}\n`;
+        });
+        rest += '\n';
+      }
+      if (data.assumptionsMade && data.assumptionsMade.length) {
+        rest += 'Assumptions Made:\n';
+        data.assumptionsMade.forEach((a, i) => {
+          rest += `  ${i + 1}. ${a}\n`;
+        });
+        rest += '\n';
+      }
+      if (rest) html += `<pre>${rest}</pre>`;
+      // Use Clipboard API for HTML
+      navigator.clipboard.write([
+        new window.ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([formatAnalysis(data)], { type: 'text/plain' })
+        })
+      ]).then(() => {
+        alert('Analysis (including table) copied to clipboard! You can paste into Word or Google Docs.');
+      }).catch((err) => {
+        console.error('Failed to copy as HTML, falling back to text:', err);
+        navigator.clipboard.writeText(formatAnalysis(data))
+          .then(() => alert('Analysis copied as plain text.'))
+          .catch(() => alert('Failed to copy text. Please copy manually.'));
+      });
+    }
+  };
+
+  const formattedText = formatAnalysis(data);
+
+  return (
+    <div className="copiable-analysis">
+      <textarea
+        ref={textAreaRef}
+        value={formattedText}
+        readOnly
+        rows={25}
+        cols={80}
+        style={{ width: '100%', padding: '15px', fontSize: '1.05em', lineHeight: '1.6', border: '1px solid #ccc', borderRadius: '8px', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}
+      />
+            {data.requirementsMatrix && data.requirementsMatrix.length > 0 && (
+        <div style={{ marginTop: '2em' }}>
+          <h3>Requirements Matrix</h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '1em' }}>
+            <thead>
+              <tr style={{ background: '#f5f5f5' }}>
+                <th style={{ border: '1px solid #ccc', padding: '8px' }}>#</th>
+                <th style={{ border: '1px solid #ccc', padding: '8px' }}>Element</th>
+                <th style={{ border: '1px solid #ccc', padding: '8px' }}>Type</th>
+                <th style={{ border: '1px solid #ccc', padding: '8px' }}>Behavior</th>
+                <th style={{ border: '1px solid #ccc', padding: '8px' }}>Data Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.requirementsMatrix.map((r, i) => (
+                <tr key={i}>
+                  <td style={{ border: '1px solid #ccc', padding: '8px' }}>{i + 1}</td>
+                  <td style={{ border: '1px solid #ccc', padding: '8px' }}>{r.uiElement}</td>
+                  <td style={{ border: '1px solid #ccc', padding: '8px' }}>{r.elementType}</td>
+                  <td style={{ border: '1px solid #ccc', padding: '8px' }}>{r.behavior}</td>
+                  <td style={{ border: '1px solid #ccc', padding: '8px' }}>{r.dataSource}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <button onClick={handleCopy} style={{ marginTop: '15px', backgroundColor: '#28a745', color: 'white' }}>
+        Copy to Clipboard
+      </button>
+    </div>
+  );
+}
+
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [analysisText, setAnalysisText] = useState(''); // Stores the formatted text output
-  const [screenId, setScreenId] = useState(''); // Stores the screen ID
+  const [analysisResults, setAnalysisResults] = useState(null);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const textAreaRef = useRef(null); // Ref for the textarea to enable copy
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
-    setAnalysisText(''); // Clear previous results
-    setScreenId('');
     setMessage('');
     setError('');
   };
@@ -45,71 +206,17 @@ function App() {
 
       const result = await response.json();
       setMessage(result.message || 'Analysis complete!');
-
-      // Handle new backend response structure
-      if (result.data) {
-        const {
-          screenId,
-          layoutDescription,
-          overallPurpose,
-          detectedElements,
-          extractedTextBlocks
-        } = result.data;
-
-        let formatted = '';
-        if (screenId) formatted += `Screen ID: ${screenId}\n\n`;
-        if (overallPurpose) formatted += `Overall Purpose:\n${overallPurpose}\n\n`;
-        if (layoutDescription) formatted += `Layout Description:\n${layoutDescription}\n\n`;
-
-        if (detectedElements && detectedElements.length) {
-          formatted += `Detected Elements:\n`;
-          detectedElements.forEach((el, idx) => {
-            formatted += `  ${idx + 1}. [${el.type}] ${el.label}\n     Purpose: ${el.purpose}\n     Position: ${el.position_description}\n`;
-          });
-          formatted += '\n';
-        }
-
-        if (extractedTextBlocks && extractedTextBlocks.length) {
-          formatted += `Extracted Text Blocks:\n`;
-          extractedTextBlocks.forEach((block, idx) => {
-            formatted += `  ${idx + 1}. "${block.text}" (${block.context})\n`;
-          });
-          formatted += '\n';
-        }
-
-        setAnalysisText(formatted);
-        setScreenId(screenId || 'N/A');
-      } else {
-        setError("Analysis data not found in the response.");
-        setAnalysisText('');
-        setScreenId('');
-      }
+      setAnalysisResults(result);
+      setShowAnalysis(true);
 
     } catch (err) {
       console.error('Error uploading or analyzing:', err);
       setError(`Failed to analyze image: ${err.message}`);
       setMessage('');
-      setAnalysisText('');
-      setScreenId('');
     } finally {
       setIsLoading(false);
     }
   };
-
-  const handleCopyToClipboard = () => {
-    if (textAreaRef.current) {
-      textAreaRef.current.select(); // Select the text in the textarea
-      navigator.clipboard.writeText(textAreaRef.current.value)
-        .then(() => {
-          alert('Analysis text copied to clipboard!');
-        })
-        .catch((err) => {
-          console.error('Failed to copy text: ', err);
-          alert('Failed to copy text. Please copy manually.');
-        });
-    }
-  };
-
 
   return (
     <div className="App">
@@ -119,29 +226,22 @@ function App() {
       </header>
 
       <main>
-        <div className="upload-section">
-          <input type="file" accept="image/*" onChange={handleFileChange} />
-          <button onClick={handleUpload} disabled={isLoading || !selectedFile}>
-            {isLoading ? 'Analyzing...' : 'Upload & Analyze'}
-          </button>
-        </div>
-
+        {!showAnalysis && (
+          <div className="upload-section">
+            <input type="file" accept="image/*" onChange={handleFileChange} />
+            <button onClick={handleUpload} disabled={isLoading || !selectedFile}>
+              {isLoading ? 'Analyzing...' : 'Upload & Analyze'}
+            </button>
+          </div>
+        )}
         {message && <p className="status-message">{message}</p>}
         {error && <p className="error-message">{error}</p>}
-
-        {analysisText && (
+        {showAnalysis && analysisResults && (
           <div className="results-section">
-            <h2>Analysis for Screen: {screenId}</h2>
-            <textarea
-              ref={textAreaRef}
-              value={analysisText}
-              readOnly
-              rows={25} // Adjust rows as needed
-              cols={80} // Adjust cols as needed
-              style={{ width: '100%', padding: '15px', fontSize: '1.05em', lineHeight: '1.6', border: '1px solid #ccc', borderRadius: '8px', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}
-            />
-            <button onClick={handleCopyToClipboard} style={{ marginTop: '15px', backgroundColor: '#28a745' }}>
-              Copy to Clipboard
+            <h2>Analysis Results</h2>
+            <CopiableAnalysis analysisResults={analysisResults} />
+            <button onClick={() => setShowAnalysis(false)} style={{ marginTop: '15px', backgroundColor: '#007bff', color: 'white' }}>
+              Back to Upload
             </button>
           </div>
         )}

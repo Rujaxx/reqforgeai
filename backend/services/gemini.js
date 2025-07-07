@@ -1,5 +1,5 @@
-const { GoogleGenAI, HarmCategory, HarmBlockThreshold,   createUserContent,
-  createPartFromUri, } = require('@google/genai');
+const { GoogleGenAI, HarmCategory, HarmBlockThreshold, createUserContent,
+    createPartFromUri, } = require('@google/genai');
 const path = require('path');
 require('dotenv').config();
 
@@ -88,79 +88,152 @@ async function analyzeScreenshot(imagePath) {
 
 
         // 3. Craft the prompt for structured JSON output
-        const prompt = `Analyze this user interface screenshot in detail. Identify and list all distinct UI elements (e.g., buttons, text fields, checkboxes, radio buttons, dropdowns, labels, images, icons, navigation bars, tables, cards, sections, headers, footers). 
-        For each identified element, provide:
-        - "type": A descriptive category (e.g., "button", "text_input", "checkbox", "image", "heading", "paragraph", "card").
-        - "label" or "content": The visible text or a brief description of the element's content (if it's a text-based element or an image description).
-        - "purpose": Infer the probable function or purpose of the element within the UI.
-        - "position_description": A brief description of its relative position on the screen (e.g., "top left", "center", "bottom right of form").
-        
-        Also, provide:
-        - "overallPurpose": A concise overall summary of the screen's main purpose and context.
-        - "layoutDescription": A general description of the screen's layout (e.g., "Standard form layout with two columns", "Grid of product cards with a search bar").
-        - "extractedTextBlocks": An array of important text blocks found on the screen, each with "text" and "context" (e.g., "main title", "error message", "instructional text").
-        
-        Return the entire analysis as a JSON object with the following schema:
+        const prompt = `You are an expert Business Analyst and UI/UX specialist. Analyze the provided UI screenshot and generate comprehensive requirements documentation.
+
+        **CONTEXT:**
+        - This is a new requirements documentation project
+        - Focus on being thorough and systematic
+        - Use professional business analysis terminology
+        - Make reasonable assumptions based on common UI patterns
+
+        **ANALYSIS INSTRUCTIONS:**
+
+        1. **Screen Identification:**
+        - Identify the screen type (login, dashboard, form, list view, etc.)
+        - Determine the primary purpose and user goals
+        - Note the overall layout and information architecture
+
+        2. **UI Element Analysis:**
+        For each visible UI element, identify:
+        - Element type (button, input field, dropdown, table, etc.)
+        - Visual properties (size, color, position, styling)
+        - Apparent functionality and behavior
+        - Data requirements and sources
+        - Validation needs
+        - Error handling requirements
+
+        3. **User Interaction Patterns:**
+        - Primary user workflows
+        - Navigation patterns
+        - Form submission processes
+        - Data manipulation capabilities
+
+        4. **Technical Requirements:**
+        - Responsive design considerations
+        - Accessibility requirements
+        - Performance expectations
+        - Integration points
+
+        **OUTPUT FORMAT:**
+        Structure your response as a JSON object with these sections:
+
         {
-          "screenId": "string", // A unique ID for this screen analysis (e.g., auto-generated UUID)
-          "overallPurpose": "string", 
-          "layoutDescription": "string",
-          "detectedElements": [
+        "screenOverview": {
+            "screenName": "Descriptive name",
+            "screenType": "Category",
+            "primaryPurpose": "Main function",
+            "userRole": "Who uses this screen"
+        },
+        "requirementsMatrix": [
             {
-              "type": "string",
-              "label": "string", // or "content"
-              "purpose": "string",
-              "position_description": "string"
+            "uiElement": "Element name/description",
+            "elementType": "Type (button, input, etc.)",
+            "behavior": "Expected behavior",
+            "dataSource": "Data source/origin",
+            "validationRules": "Validation requirements",
+            "errorHandling": "Error handling approach",
+            "businessRules": "Business logic constraints",
+            "notes": "Additional notes"
             }
-          ],
-          "extractedTextBlocks": [
-            {
-              "text": "string",
-              "context": "string"
-            }
-          ]
+        ],
+        "functionalRequirements": [
+            "List of key functional requirements"
+        ],
+        "nonFunctionalRequirements": [
+            "Performance, accessibility, etc."
+        ],
+        "businessRules": [
+            "Important business logic and constraints"
+        ],
+        "assumptionsMade": [
+            "List all assumptions for user review"
+        ]
         }
-        Ensure the output is valid JSON, enclosed in a single JSON object.`;
+
+        **IMPORTANT:** Be specific and detailed. If you're unsure about functionality, state your assumptions clearly for user review and correction.`;
 
         // Define the response schema for structured output
         const responseJsonSchema = {
-    type: "object",
-    properties: {
-        screenId: { type: "string" },
-        overallPurpose: { type: "string" },
-        layoutDescription: { type: "string" },
-        detectedElements: {
-            type: "array",
-            items: {
-                type: "object",
-                properties: {
-                    type: { type: "string" },
-                    label: { type: "string" },
-                    purpose: { type: "string" },
-                    position_description: { type: "string" }
+            type: "object",
+            properties: {
+                screenOverview: {
+                    type: "object",
+                    properties: {
+                        screenName: { type: "string" },
+                        screenType: { type: "string" },
+                        primaryPurpose: { type: "string" },
+                        userRole: { type: "string" },
+                        relationshipToPreviousScreens: { type: "string" }
+                    },
+                    required: ["screenName", "screenType", "primaryPurpose", "userRole"]
                 },
-                required: ["type", "label", "purpose", "position_description"]
-            }
-        },
-        extractedTextBlocks: {
-            type: "array",
-            items: {
-                type: "object",
-                properties: {
-                    text: { type: "string" },
-                    context: { type: "string" }
+                requirementsMatrix: {
+                    type: "array",
+                    items: {
+                        type: "object",
+                        properties: {
+                            uiElement: { type: "string" },
+                            elementType: { type: "string" },
+                            behavior: { type: "string" },
+                            dataSource: { type: "string" },
+                            validationRules: { type: "string" },
+                            errorHandling: { type: "string" },
+                            businessRules: { type: "string" },
+                            notes: { type: "string" }
+                        },
+                        required: ["uiElement", "elementType", "behavior", "dataSource", "validationRules", "errorHandling", "businessRules", "notes"]
+                    }
                 },
-                required: ["text", "context"]
-            }
-        }
-    },
-    required: [
-        "screenId",
-        "overallPurpose",
-        "layoutDescription",
-        "detectedElements",
-        "extractedTextBlocks"
-    ]
+                functionalRequirements: {
+                    type: "array",
+                    items: { type: "string" }
+                },
+                nonFunctionalRequirements: {
+                    type: "array",
+                    items: { type: "string" }
+                },
+                businessRules: {
+                    type: "array",
+                    items: { type: "string" }
+                },
+                assumptionsMade: {
+                    type: "array",
+                    items: { type: "string" }
+                },
+                crossScreenConsistency: {
+                    type: "object",
+                    properties: {
+                        matchingElements: { type: "array", items: { type: "string" } },
+                        variationsFromPatterns: { type: "array", items: { type: "string" } },
+                        newPatternsIntroduced: { type: "array", items: { type: "string" } }
+                    }
+                },
+                dataFlowIntegration: {
+                    type: "object",
+                    properties: {
+                        dataFlowBetweenScreens: { type: "array", items: { type: "string" } },
+                        sharedDataSources: { type: "array", items: { type: "string" } }
+                    }
+                }
+            },
+            required: [
+                "screenOverview",
+                "requirementsMatrix",
+                "functionalRequirements",
+                "nonFunctionalRequirements",
+                "businessRules",
+                "assumptionsMade"
+            ]
         };
 
 
@@ -168,8 +241,8 @@ async function analyzeScreenshot(imagePath) {
         const result = await ai.models.generateContent({
             model: MODEL_NAME, // Use the vision model for image analysis
             contents: createUserContent([
-                createPartFromUri(uploadedFile.uri, uploadedFile.mimeType), 
-                prompt 
+                createPartFromUri(uploadedFile.uri, uploadedFile.mimeType),
+                prompt
             ]),
             config: {
                 responseMimeType: "application/json", // Crucial for structured output
@@ -190,10 +263,10 @@ async function analyzeScreenshot(imagePath) {
         // 4. Parse and return the structured result
         let output = null;
         try {
-        output = JSON.parse(result.candidates[0].content.parts[0].text); // Assuming the first part contains the JSON output
+            output = JSON.parse(result.candidates[0].content.parts[0].text); // Assuming the first part contains the JSON output
         } catch (e) {
             console.error("[Gemini Service] Error parsing Gemini response as JSON:", e);
-        throw new Error("Failed to parse Gemini response as JSON");
+            throw new Error("Failed to parse Gemini response as JSON");
         }
         return output;
 
