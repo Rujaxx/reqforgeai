@@ -1,20 +1,62 @@
 const { GoogleGenAI, HarmCategory, HarmBlockThreshold, createUserContent,
-    createPartFromUri, } = require('@google/genai');
+    createPartFromUri } = require('@google/genai');
 const path = require('path');
-require('dotenv').config();
+const ProjectModel = require('../models/project.model');
+const { CloudClient, Collection } = require("chromadb")
+const { GoogleGeminiEmbeddingFunction } = require("@chroma-core/google-gemini");
+
+
+const client = new CloudClient(
+    {
+        apiKey: process.env.CHROMA_API_KEY || "YOUR_API_KEY",
+        tenant: process.env.CHROMA_TENANT || "94f97a44-3ca4-4a1c-a6e1-6b13595224c5",
+        database: process.env.CHROMA_DATABASE || "new",
+    }
+);
+
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-
 if (!GOOGLE_API_KEY) {
     console.error("Error: GOOGLE_API_KEY is not set in environment variables. Please set it in your .env file.");
     process.exit(1); // Exit if API key is not found
 }
+
+
+const embedder = new GoogleGeminiEmbeddingFunction({
+  apiKey: GOOGLE_API_KEY, // Or set GEMINI_API_KEY env var
+  modelName: 'text-embedding-004', // Optional, defaults to latest model
+  taskType: 'SEMANTIC_SIMILARITY', // Optional
+});
 
 const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
 
 // Using the latest recommended model for vision tasks as of July 2025.
 // Always verify the latest model names from Google's official documentation.
 const MODEL_NAME = "gemini-2.5-flash";
+
+
+/**
+ * Generates a Gemini embedding for the given text.
+ * @param {string} text - The input text to embed.
+ * @param {string} taskType - The task type for the embedding model.
+ * @returns {Promise<number[]>} - Embedding vector.
+ */
+async function generateGeminiEmbedding(text, taskType = "SEMANTIC_SIMILARITY") {
+    try {
+        const response = await ai.models.embedContent({
+            model: "models/text-embedding-004",
+            contents: text,
+            config: {
+                taskType: taskType,
+            }
+        });
+
+        return response.embeddings.values();
+    } catch (error) {
+        console.error("[Gemini Embedding] Failed to generate embedding:", error);
+        throw new Error("Embedding generation failed.");
+    }
+}
 
 /**
  * Uploads a local image file to the Gemini File API and returns its File object.
@@ -77,9 +119,28 @@ async function deleteUploadedFile(fileName) {
  * to an object containing the parsed JSON analysis (or raw text fallback) and the name of the
  * uploaded file in Gemini's API (for subsequent deletion).
  */
-async function analyzeScreenshot(imagePath) {
+async function analyzeScreenshot(imagePath, projectId) {
     let uploadedFile = null; // To store the uploaded file object for deletion
     let analysisResult = { analysis: null, uploadedFileName: null };
+    const project = await ProjectModel.findById(projectId);
+    if (!project) {
+        throw new Error(`Project with ID ${projectId} not found.`);
+    }
+    const collection = await client.getOrCreateCollection({
+        name: "project-screens",
+        embeddingFunction: embedder,
+    });
+
+    const previousScreens = await collection.query({
+        queryTexts: [`screenName`], /// Adjust this to match your actual query needs
+        where: {
+            projectId: projectId.toString(),
+        },
+        includes: ["documents"],
+        nResults: 2,
+    });
+
+    const previousContext = previousScreens.documents.flat().join("\n\n");
 
     try {
         // 1. Upload the local image file to Gemini's temporary storage
@@ -89,9 +150,10 @@ async function analyzeScreenshot(imagePath) {
 
         // 3. Craft the prompt for structured JSON output
         const prompt = `You are an expert Business Analyst and UI/UX specialist. Analyze the provided UI screenshot and generate comprehensive requirements documentation.
-
+        Previous Screens Context: ${previousContext}
         **CONTEXT:**
-        - This is a new requirements documentation project
+        - This is a new requirements documentation project :${project.name}
+        - Description: ${project.description}
         - Focus on being thorough and systematic
         - Use professional business analysis terminology
         - Make reasonable assumptions based on common UI patterns
@@ -210,21 +272,6 @@ async function analyzeScreenshot(imagePath) {
                     type: "array",
                     items: { type: "string" }
                 },
-                crossScreenConsistency: {
-                    type: "object",
-                    properties: {
-                        matchingElements: { type: "array", items: { type: "string" } },
-                        variationsFromPatterns: { type: "array", items: { type: "string" } },
-                        newPatternsIntroduced: { type: "array", items: { type: "string" } }
-                    }
-                },
-                dataFlowIntegration: {
-                    type: "object",
-                    properties: {
-                        dataFlowBetweenScreens: { type: "array", items: { type: "string" } },
-                        sharedDataSources: { type: "array", items: { type: "string" } }
-                    }
-                }
             },
             required: [
                 "screenOverview",
@@ -258,7 +305,7 @@ async function analyzeScreenshot(imagePath) {
                 { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
             ],
         });
-        console.log(`[Gemini Service] Gemini response received for screenshot analysis${result}`);
+        console.log(`[Gemini Service] Gemini response received for screenshot analysis`);
 
         // 4. Parse and return the structured result
         let output = null;
@@ -268,6 +315,14 @@ async function analyzeScreenshot(imagePath) {
             console.error("[Gemini Service] Error parsing Gemini response as JSON:", e);
             throw new Error("Failed to parse Gemini response as JSON");
         }
+        const flatText = flattenAnalysisForEmbedding(output);
+        await collection.add({
+            ids: [`analysis-${projectId}-${Date.now()}`],
+            documents: [flatText],
+            metadatas: [{
+                projectId: projectId.toString(),
+            }],
+        });
         return output;
 
     } catch (error) {
@@ -278,7 +333,20 @@ async function analyzeScreenshot(imagePath) {
 
 
 
+function flattenAnalysisForEmbedding(analysisJson) {
+    const { screenOverview, functionalRequirements } = analysisJson;
+    let text = `Screen: ${screenOverview.screenName} (${screenOverview.screenType})\n`;
+    text += `Purpose: ${screenOverview.primaryPurpose}\n\n`;
+
+    text += `Functional Requirements:\n${functionalRequirements.join("\n")}\n`;
+
+    return text;
+}
+
+
 module.exports = {
     analyzeScreenshot,
-    deleteUploadedFile // Expose for explicit deletion if needed outside analysis
+    deleteUploadedFile, // Expose for explicit deletion if needed outside analysis
+    generateGeminiEmbedding,
+
 };
