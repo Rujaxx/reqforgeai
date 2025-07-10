@@ -1,0 +1,109 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(45, 58, 90, 0.13); /* match Home.css blueish overlay */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #f8faff; /* match Home.css background */
+  border-radius: 8px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.13);
+  padding: 2em 2.5em 1.5em 2.5em;
+  min-width: 380px;
+  max-width: 420px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modal-pop 0.2s cubic-bezier(.4,1.6,.6,1) 1;
+  border: 1.5px solid #e3e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.modal h2 {
+  color: #2d3a5a;
+  margin-bottom: 1.2em;
+  font-size: 1.35em;
+  font-weight: 600;
+  text-align: center;
+}
+
+.modal form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.modal input,
+.modal textarea {
+  border: 1.5px solid #c3d0e8;
+  border-radius: 8px;
+  padding: 0.7em 1em;
+  font-size: 1em;
+  background: #fff;
+  color: #222;
+  margin-bottom: 0.9em;
+  transition: border 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.modal textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.modal input:focus,
+.modal textarea:focus {
+  border: 1.5px solid #007bff;
+  outline: none;
+}
+
+.modal .modal-btn-row {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 0.5em;
+}
+
+.modal button {
+  font-size: 1em;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6em 1.5em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.modal button[type="submit"] {
+  background: #007bff;
+  color: #fff;
+}
+
+.modal button[type="button"] {
+  background: #e3e8f0;
+  color: #2d3a5a;
+}
+
+.modal button[type="submit"]:hover {
+  background: #0056b3;
+}
+
+.modal button[type="button"]:hover {
+  background: #c3d0e8;
+}
+
+@keyframes modal-pop {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

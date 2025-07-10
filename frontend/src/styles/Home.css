@@ -1,0 +1,92 @@
+.landing-section {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 2.5em 1em 2em 1em;
+  text-align: center;
+}
+
+.home-title {
+  font-size: 2.1em;
+  color: #2d3a5a;
+  margin-bottom: 0.5em;
+}
+
+.home-desc {
+  max-width: 600px;
+  margin: 0 auto 2em auto;
+  color: #444;
+  font-size: 1.15em;
+}
+
+.create-project-btn {
+  font-size: 1.2em;
+  padding: 1em 2em;
+  background: #007bff;
+  color: white;
+  border-radius: 8px;
+  border: none;
+  margin-bottom: 2em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.create-project-btn:hover {
+  background: #0056b3;
+}
+
+.project-list {
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.project-list-title {
+  color: #2d3a5a;
+  font-size: 1.1em;
+  margin-bottom: 10px;
+}
+
+.no-projects {
+  color: #888;
+  font-style: italic;
+  margin-bottom: 20px;
+}
+
+.project-list-ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.project-list-item {
+  background: #f8faff;
+  border: 1.5px solid #e3e8f0;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  padding: 1em 1.2em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.project-list-item:hover {
+  background: #e3e8f0;
+}
+
+.project-name {
+  font-weight: 600;
+  color: #2d3a5a;
+  font-size: 1.08em;
+}
+
+.project-desc {
+  color: #555;
+  font-size: 0.98em;
+  margin-top: 2px;
+}
+
+.project-open {
+  color: #007bff;
+  font-weight: 500;
+  font-size: 0.95em;
+}

@@ -1,0 +1,24 @@
+table, th, td {
+  border: 1px solid #ccc;
+  padding: '8px';
+}
+
+.copiable-textarea {
+    width: '100%';
+    padding: '20px';
+    font-size: '1.05em';
+    line-height: '1.6';
+    border: '1px solid #ccc';
+    border-radius: '8px';
+    white-space: 'pre-wrap';
+}
+
+.copy-button {
+    margin-top: '15px';
+    background-color: '#28a745';
+    color: 'white';
+}
+
+.requirements-matrix {
+    margin-top: '2em';
+}
