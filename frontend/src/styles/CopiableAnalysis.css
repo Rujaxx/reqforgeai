@@ -22,3 +22,8 @@ table, th, td {
 .requirements-matrix {
     margin-top: '2em';
 }
+
+img {
+    max-width: 800px;
+    height: 'auto';
+}
