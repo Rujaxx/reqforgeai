@@ -23,9 +23,9 @@ if (!GOOGLE_API_KEY) {
 
 
 const embedder = new GoogleGeminiEmbeddingFunction({
-  apiKey: GOOGLE_API_KEY, // Or set GEMINI_API_KEY env var
-  modelName: 'text-embedding-004', // Optional, defaults to latest model
-  taskType: 'SEMANTIC_SIMILARITY', // Optional
+    apiKey: GOOGLE_API_KEY, // Or set GEMINI_API_KEY env var
+    modelName: 'text-embedding-004', // Optional, defaults to latest model
+    taskType: 'SEMANTIC_SIMILARITY', // Optional
 });
 
 const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
@@ -119,9 +119,7 @@ async function deleteUploadedFile(fileName) {
  * to an object containing the parsed JSON analysis (or raw text fallback) and the name of the
  * uploaded file in Gemini's API (for subsequent deletion).
  */
-async function analyzeScreenshot(imagePath, projectId) {
-    let uploadedFile = null; // To store the uploaded file object for deletion
-    let analysisResult = { analysis: null, uploadedFileName: null };
+async function analyzeScreenshot(cloudinaryResult, req, projectId, screenDescription = null) {
     const project = await ProjectModel.findById(projectId);
     if (!project) {
         throw new Error(`Project with ID ${projectId} not found.`);
@@ -132,20 +130,20 @@ async function analyzeScreenshot(imagePath, projectId) {
     });
 
     const previousScreens = await collection.query({
-        queryTexts: [`screenName`], /// Adjust this to match your actual query needs
+        queryTexts: [screenDescription ? screenDescription : `screenName`], /// Adjust this to match your actual query needs
         where: {
             projectId: projectId.toString(),
         },
         includes: ["documents"],
-        nResults: 2,
+        nResults: 3,
     });
 
     const previousContext = previousScreens.documents.flat().join("\n\n");
 
     try {
         // 1. Upload the local image file to Gemini's temporary storage
-        uploadedFile = await uploadImageFile(imagePath);
-        analysisResult.uploadedFileName = uploadedFile.name; // Store the name for return value
+        // uploadedFile = await uploadImageFile(imagePath);
+        // analysisResult.uploadedFileName = uploadedFile.name; // Store the name for return value
 
 
         // 3. Craft the prompt for structured JSON output
@@ -283,14 +281,21 @@ async function analyzeScreenshot(imagePath, projectId) {
             ]
         };
 
+        const base64ImageData = Buffer.from(req.file.buffer).toString('base64');
 
         // 4. Send the request to Gemini
         const result = await ai.models.generateContent({
             model: MODEL_NAME, // Use the vision model for image analysis
-            contents: createUserContent([
-                createPartFromUri(uploadedFile.uri, uploadedFile.mimeType),
-                prompt
-            ]),
+            contents:
+                [
+                    {
+                        inlineData: {
+                            mimeType: req.file.mimetype,
+                            data: base64ImageData // Convert buffer to base64 string
+                        }
+                    },
+                    { text: prompt }
+                ],
             config: {
                 responseMimeType: "application/json", // Crucial for structured output
                 responseJsonSchema: responseJsonSchema, // Use the defined schema for structured output
@@ -309,6 +314,7 @@ async function analyzeScreenshot(imagePath, projectId) {
 
         // 4. Parse and return the structured result
         let output = null;
+        console.log(result)
         try {
             output = JSON.parse(result.candidates[0].content.parts[0].text); // Assuming the first part contains the JSON output
         } catch (e) {
@@ -322,6 +328,20 @@ async function analyzeScreenshot(imagePath, projectId) {
             metadatas: [{
                 projectId: projectId.toString(),
             }],
+        });
+        console.log({ ...cloudinaryResult })
+        // Store the analysis in the project document
+        await ProjectModel.updateOne({ _id: projectId }, {
+            $push: {
+                screens: [
+                    {
+                        screen: JSON.stringify(output),
+                        image: {
+                            ...cloudinaryResult
+                        }
+                    }
+                ]
+            }
         });
         return output;
 

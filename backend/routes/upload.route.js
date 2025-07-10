@@ -4,6 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const { uploadScreenshot } = require('../controllers/upload.controller');
 const router = express.Router();
+const uploadToCloudinary = require('../middlewares/cloudinary.middleware');
+
 
 // Configure multer storage
 const storage = multer.diskStorage({
@@ -30,9 +32,12 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({ storage, fileFilter });
+const upload = multer({
+  // storage,
+  fileFilter, limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 // POST /upload - handle file upload
-router.post('/', upload.single('screenshot'), uploadScreenshot);
+router.post('/', upload.single('screenshot'), uploadToCloudinary, uploadScreenshot);
 
 module.exports = router;

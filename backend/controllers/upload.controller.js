@@ -7,7 +7,7 @@ exports.uploadScreenshot = async(req, res) => {
   const projectId = req.body.projectId; // Get projectId from request body
 
   // Call the analyzeScreenshot function with the uploaded file path
-  const  response = await analyzeScreenshot(req.file.path,projectId);
+  const  response = await analyzeScreenshot(req.cloudinaryResult,req,projectId, req.body.screenDescription);
   return res.status(200).json({
     message: 'File uploaded successfully',
     data:response
