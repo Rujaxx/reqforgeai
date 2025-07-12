@@ -4,7 +4,8 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(45, 58, 90, 0.13); /* match Home.css blueish overlay */
+  background: rgba(45, 58, 90, 0.13);
+  /* match Home.css blueish overlay */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12,17 +13,17 @@
 }
 
 .modal {
-  background: #f8faff; /* match Home.css background */
+  background: #302e2e;
+  /* match Home.css background */
   border-radius: 8px;
-  box-shadow: 0 4px 32px rgba(0,0,0,0.13);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.13);
   padding: 2em 2.5em 1.5em 2.5em;
   min-width: 380px;
   max-width: 420px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  animation: modal-pop 0.2s cubic-bezier(.4,1.6,.6,1) 1;
-  border: 1.5px solid #e3e8f0;
+  animation: modal-pop 0.2s cubic-bezier(.4, 1.6, .6, 1) 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -104,6 +105,34 @@
 }
 
 @keyframes modal-pop {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.progressbar {
+  position: relative;
+  width: 280px;
+  /* Fixed width that fits well in your modal */
+  margin: 30px auto 0;
+  height: 30px;
+  background: #274545;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+span.progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: #326666;
+  transition: all .3s;
 }
