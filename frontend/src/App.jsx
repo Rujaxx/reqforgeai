@@ -8,6 +8,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/project/:id" element={<AnalysisPage />} />
+        <Route path="*" element={<div className="error-state">Page Not Found 404<p>Sorry, the page you are looking for could not be found.</p></div>} />
       </Routes>
   );
 }
