@@ -1,8 +1,6 @@
-const { GoogleGenAI, HarmCategory, HarmBlockThreshold, createUserContent,
-    createPartFromUri } = require('@google/genai');
-const path = require('path');
+const { GoogleGenAI, HarmCategory, HarmBlockThreshold } = require('@google/genai');
 const ProjectModel = require('../models/project.model');
-const { CloudClient, Collection } = require("chromadb")
+const { CloudClient } = require("chromadb")
 const { GoogleGeminiEmbeddingFunction } = require("@chroma-core/google-gemini");
 
 
@@ -34,82 +32,6 @@ const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
 // Always verify the latest model names from Google's official documentation.
 const MODEL_NAME = "gemini-2.5-flash";
 
-
-/**
- * Generates a Gemini embedding for the given text.
- * @param {string} text - The input text to embed.
- * @param {string} taskType - The task type for the embedding model.
- * @returns {Promise<number[]>} - Embedding vector.
- */
-async function generateGeminiEmbedding(text, taskType = "SEMANTIC_SIMILARITY") {
-    try {
-        const response = await ai.models.embedContent({
-            model: "models/text-embedding-004",
-            contents: text,
-            config: {
-                taskType: taskType,
-            }
-        });
-
-        return response.embeddings.values();
-    } catch (error) {
-        console.error("[Gemini Embedding] Failed to generate embedding:", error);
-        throw new Error("Embedding generation failed.");
-    }
-}
-
-/**
- * Uploads a local image file to the Gemini File API and returns its File object.
- * This is the recommended approach for image inputs, especially for larger files.
- * Files uploaded here are temporary (48-hour lifecycle).
- *
- * @param {string} filePath - The path to the image file on the local server.
- * @returns {Promise<import('@google/genai').File>} - A promise that resolves to the uploaded File object from Gemini.
- */
-async function uploadImageFile(filePath) {
-    // Infer MIME type from file extension. Can be overridden in config if needed.
-    const mimeType = path.extname(filePath).toLowerCase() === '.png' ? 'image/png' : 'image/jpeg';
-
-    try {
-        const uploadedFile = await ai.files.upload({
-            file: filePath, // Direct file path is supported in Node.js
-            config: {
-                mimeType: mimeType
-            }
-        });
-        console.log(`[Gemini Service] File uploaded to Gemini File API: ${uploadedFile.name} (URI: ${uploadedFile.uri})`);
-        return {
-            name: uploadedFile.name, // e.g., 'files/your-file-id'
-            uri: uploadedFile.uri, // e.g., 'gs://your-bucket/files/
-            mimeType: uploadedFile.mimeType // e.g., 'image/png' or 'image/jpeg'
-        };
-    } catch (error) {
-        console.error("[Gemini Service] Error uploading file to Gemini File API:", error);
-        throw new Error(`Failed to upload image file to Gemini: ${error.message}`);
-    }
-}
-
-/**
- * Deletes a file from the Gemini File API.
- * This is important for cleaning up temporary storage and managing API usage.
- *
- * @param {string} fileName - The 'name' property of the File object (e.g., 'files/your-file-id').
- */
-async function deleteUploadedFile(fileName) {
-    if (!fileName) {
-        console.warn("[Gemini Service] Attempted to delete null or undefined file name from Gemini File API.");
-        return;
-    }
-    try {
-        await ai.files.delete({ name: fileName });
-        console.log(`[Gemini Service] File deleted from Gemini File API: ${fileName}`);
-    } catch (error) {
-        // Log the error but don't re-throw, as this is a cleanup step.
-        // File might have already expired or been deleted.
-        console.error(`[Gemini Service] Error deleting file ${fileName} from Gemini File API:`, error);
-    }
-}
-
 /**
  * Analyzes a screenshot using Gemini Flash 2.5 Vision API.
  * It leverages the Gemini File API for efficient image input and requests JSON output.
@@ -119,38 +41,36 @@ async function deleteUploadedFile(fileName) {
  * to an object containing the parsed JSON analysis (or raw text fallback) and the name of the
  * uploaded file in Gemini's API (for subsequent deletion).
  */
-async function analyzeScreenshot(cloudinaryResult, req, projectId, screenDescription = null) {
-    const project = await ProjectModel.findById(projectId);
-    if (!project) {
-        throw new Error(`Project with ID ${projectId} not found.`);
-    }
-    const collection = await client.getOrCreateCollection({
-        name: "project-screens",
-        embeddingFunction: embedder,
-    });
-
-    const previousScreens = await collection.query({
-        queryTexts: [screenDescription ? screenDescription : `screenName`], /// Adjust this to match your actual query needs
-        where: {
-            projectId: projectId.toString(),
-        },
-        includes: ["documents"],
-        nResults: 3,
-    });
-
-    const previousContext = previousScreens.documents.flat().join("\n\n");
-
+async function analyzeScreenshot(input) {
     try {
-        // 1. Upload the local image file to Gemini's temporary storage
-        // uploadedFile = await uploadImageFile(imagePath);
-        // analysisResult.uploadedFileName = uploadedFile.name; // Store the name for return value
+        const { cloudinaryResult, req, projectId, screenDescription } = input;
+        if (!cloudinaryResult || !req || !projectId) {
+            throw new Error("Missing required parameters: cloudinaryResult, req, or projectId.");
+        }
+        const project = await ProjectModel.findById(projectId);
+        if (!project) {
+            throw new Error(`Project with ID ${projectId} not found.`);
+        }
+        const collection = await client.getOrCreateCollection({
+            name: "project-screens",
+            embeddingFunction: embedder,
+        });
 
+        const previousScreens = await collection.query({
+            queryTexts: [screenDescription ? screenDescription : `screenName`], /// Adjust this to match your actual query needs
+            where: {
+                projectId: projectId.toString(),
+            },
+            includes: ["documents"],
+            nResults: 3,
+        });
 
-        // 3. Craft the prompt for structured JSON output
+        const previousContext = previousScreens.documents.flat().join("\n\n");
+        // 1. Craft the prompt for structured JSON output
         const prompt = `You are an expert Business Analyst and UI/UX specialist. Analyze the provided UI screenshot and generate comprehensive requirements documentation.
         Previous Screens Context: ${previousContext}
         **CONTEXT:**
-        - This is a new requirements documentation project :${project.name}
+        - This is a requirements documentation project :${project.name}
         - Description: ${project.description}
         - Focus on being thorough and systematic
         - Use professional business analysis terminology
@@ -200,8 +120,8 @@ async function analyzeScreenshot(cloudinaryResult, req, projectId, screenDescrip
             "elementType": "Type (button, input, etc.)",
             "behavior": "Expected behavior",
             "dataSource": "Data source/origin",
-            "validationRules": "Validation requirements",
-            "errorHandling": "Error handling approach",
+            "validationRules": "Validation requirements following best practices",
+            "errorHandling": "Error handling approach (if applicable) following best practices",
             "businessRules": "Business logic constraints",
             "notes": "Additional notes"
             }
@@ -314,7 +234,6 @@ async function analyzeScreenshot(cloudinaryResult, req, projectId, screenDescrip
 
         // 4. Parse and return the structured result
         let output = null;
-        console.log(result)
         try {
             output = JSON.parse(result.candidates[0].content.parts[0].text); // Assuming the first part contains the JSON output
         } catch (e) {
@@ -329,7 +248,6 @@ async function analyzeScreenshot(cloudinaryResult, req, projectId, screenDescrip
                 projectId: projectId.toString(),
             }],
         });
-        console.log({ ...cloudinaryResult })
         // Store the analysis in the project document
         await ProjectModel.updateOne({ _id: projectId }, {
             $push: {
@@ -357,16 +275,11 @@ function flattenAnalysisForEmbedding(analysisJson) {
     const { screenOverview, functionalRequirements } = analysisJson;
     let text = `Screen: ${screenOverview.screenName} (${screenOverview.screenType})\n`;
     text += `Purpose: ${screenOverview.primaryPurpose}\n\n`;
-
     text += `Functional Requirements:\n${functionalRequirements.join("\n")}\n`;
-
     return text;
 }
 
 
 module.exports = {
     analyzeScreenshot,
-    deleteUploadedFile, // Expose for explicit deletion if needed outside analysis
-    generateGeminiEmbedding,
-
 };
