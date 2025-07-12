@@ -110,7 +110,7 @@ function AnalysisPage() {
           }
           return prev;
         });
-      }, 200);
+      }, 300); // Adjust interval speed as needed
       return () => clearInterval(interval);
     }
   }, [isUploading, showProgress]);
