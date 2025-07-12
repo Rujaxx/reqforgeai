@@ -43,10 +43,18 @@ const MODEL_NAME = "gemini-2.5-flash";
  */
 async function analyzeScreenshot(input) {
     try {
-        const { cloudinaryResult, req, projectId, screenDescription } = input;
-        if (!cloudinaryResult || !req || !projectId) {
-            throw new Error("Missing required parameters: cloudinaryResult, req, or projectId.");
+        const { cloudinaryResult, file} = input;
+        const { projectId, screenDescription } = input.body;
+        if (!projectId) {
+            throw new Error("Missing required parameter: projectId.");
         }
+        if (!file) {
+            throw new Error("Missing required parameter: file.");
+        }
+        if (!cloudinaryResult) {
+            throw new Error("Cloudinary upload result is required for analysis.");
+        }
+        // Ensure the project exists
         const project = await ProjectModel.findById(projectId);
         if (!project) {
             throw new Error(`Project with ID ${projectId} not found.`);
@@ -201,7 +209,7 @@ async function analyzeScreenshot(input) {
             ]
         };
 
-        const base64ImageData = Buffer.from(req.file.buffer).toString('base64');
+        const base64ImageData = Buffer.from(file.buffer).toString('base64');
 
         // 4. Send the request to Gemini
         const result = await ai.models.generateContent({
@@ -210,7 +218,7 @@ async function analyzeScreenshot(input) {
                 [
                     {
                         inlineData: {
-                            mimeType: req.file.mimetype,
+                            mimeType: file.mimetype,
                             data: base64ImageData // Convert buffer to base64 string
                         }
                     },
