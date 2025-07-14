@@ -2,82 +2,84 @@
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, BorderStyle, HeadingLevel, ImageRun } from "docx";
 import { saveAs } from "file-saver";
 
-export const generateFromUrl = async(imageUrl) => {
-   let image = await fetch(
-      imageUrl,
-    )
-    return await image.blob();
-  }
+export const generateFromUrl = async (imageUrl) => {
+  let image = await fetch(
+    imageUrl,
+  )
+  return await image.blob();
+}
 
 export const exportAnalysisToDocx = async (screens) => {
   try {
     // Check if screens is provided    
     // Handle both single screen object and array of screens
     let screensArray = Array.isArray(screens) ? screens : [screens];
-    
+
     if (screensArray.length === 0) {
       throw new Error("No screens data provided");
     }
-    
+
     const children = [];
     // Add document title
     children.push(
-      new Paragraph({ 
-        text: "Screen Analysis Report", 
+      new Paragraph({
+        text: "Screen Analysis Report",
         heading: HeadingLevel.TITLE
       }),
       new Paragraph("") // Spacer
     );
-  
+
     let hasContent = false;
-    for(let [screenIndex, input ] of screensArray.entries()) {
-      console.log("Processing screen data:", input,screenIndex);
-    // screensArray.map(async(data, screenIndex) => {
-      const imageUrl = input?.image?.secure_url || null; // Get image URL if available
-      let bufferImg = null
-      let image = null;
-      if(imageUrl) {
-        bufferImg = await generateFromUrl(imageUrl);
-        image = new Paragraph({
-          children: [
-            new ImageRun({
-              type: bufferImg.type.split("/")[1] || "png", // Default to PNG if type is not available
-              data: bufferImg,
-              transformation: {
-                width: 640, // Set width as needed
-                height: 480 // Set height as needed
-              },
-            }),
-          ],
-          alignment: "center", // Center the image
-        })
-      }
+    for (let [screenIndex, input] of screensArray.entries()) {
       let data = JSON.parse(input.screen); // Ensure data is parsed from string to object if needed
       // Screen Overview Section
       if (data?.screenOverview) {
         const o = data.screenOverview;
         children.push(
           new Paragraph(""),
-          new Paragraph({ 
-            text: `Screen ${screenIndex + 1}: ${o.screenName || 'Unnamed Screen'}`, 
-            heading: HeadingLevel.HEADING_1 
+          new Paragraph({
+            text: `Screen ${screenIndex + 1}: ${o.screenName || 'Unnamed Screen'}`,
+            heading: HeadingLevel.HEADING_1
           }),
           new Paragraph(`Type: ${o.screenType || 'Not specified'}`),
           new Paragraph(`Primary Purpose: ${o.primaryPurpose || 'Not specified'}`),
           new Paragraph(`User Role: ${o.userRole || 'Not specified'}`),
           new Paragraph(`Relation to Previous Screens: ${o.relationshipToPreviousScreens || 'Not specified'}`),
           new Paragraph(""),
-          imageUrl ? image : new Paragraph("No image available for this screen."), // Add image if available
-          new Paragraph("") // Spacer
-
         );
         hasContent = true;
+      }
+
+      const imageUrl = input?.image?.secure_url || null; // Get image URL if available
+      if (imageUrl) {
+        const bufferImg = await generateFromUrl(imageUrl)
+        if (bufferImg.type.startsWith("image")) {
+          children.push(
+            new Paragraph({
+              children: [
+                new ImageRun({
+                  type: bufferImg.type.split("/")[1] || "png", // Default to PNG if type is not available
+                  data: await bufferImg.arrayBuffer(),
+                  transformation: {
+                    width: 640, // Set width as needed
+                    height: 480 // Set height as needed
+                  },
+                }),
+              ],
+              alignment: "center", // Center the image
+            }),
+            new Paragraph("")
+          )
+
+        } else {
+          new Paragraph("No image added")
+        }
       }
 
       // Requirements Matrix Table
       if (data?.requirementsMatrix?.length) {
         const headers = [
-          "#", "Element", "Type", "Behavior", "Data Source", 
+          "#", "Element", "Type", "Behavior", "Data Source",
           "Validation Rules", "Error Handling", "Business Rules", "Notes"
         ];
 
@@ -107,9 +109,9 @@ export const exportAnalysisToDocx = async (screens) => {
         ];
 
         children.push(
-          new Paragraph({ 
-            text: "Requirements Matrix", 
-            heading: HeadingLevel.HEADING_2 
+          new Paragraph({
+            text: "Requirements Matrix",
+            heading: HeadingLevel.HEADING_2
           }),
           new Paragraph(""),
           new Paragraph(""),
@@ -127,7 +129,7 @@ export const exportAnalysisToDocx = async (screens) => {
           }),
           new Paragraph(""),
           new Paragraph("") // Spacer
-          
+
         );
         hasContent = true;
       }
@@ -135,9 +137,9 @@ export const exportAnalysisToDocx = async (screens) => {
       // Helper function to append lists
       const appendList = (title, items) => {
         if (items?.length) {
-          children.push(new Paragraph({ 
-            text: title, 
-            heading: HeadingLevel.HEADING_2 
+          children.push(new Paragraph({
+            text: title,
+            heading: HeadingLevel.HEADING_2
           }));
           items.forEach((item, index) => {
             children.push(new Paragraph(`${index + 1}. ${item}`));
@@ -152,7 +154,7 @@ export const exportAnalysisToDocx = async (screens) => {
       appendList("Non-Functional Requirements", data?.nonFunctionalRequirements);
       appendList("Business Rules", data?.businessRules);
       appendList("Assumptions Made", data?.assumptionsMade);
-    // });
+      // });
     }
     // If no content was added, add a message
     if (!hasContent) {
@@ -168,7 +170,7 @@ export const exportAnalysisToDocx = async (screens) => {
         new Paragraph("- assumptionsMade array (optional)")
       );
     }
-    
+
     // Create the document
     const doc = new Document({
       sections: [{
@@ -185,17 +187,17 @@ export const exportAnalysisToDocx = async (screens) => {
         }
       }]
     });
-    
+
     // Generate and save the document
     const blob = await Packer.toBlob(doc);
-    
+
     if (blob.size === 0) {
       throw new Error("Generated document is empty");
     }
-    
+
     saveAs(blob, "ScreensAnalysis.docx");
     console.log("Document exported successfully");
-    
+
   } catch (error) {
     console.error("Error exporting to DOCX:", error);
     alert(`Error exporting document: ${error.message}`);
