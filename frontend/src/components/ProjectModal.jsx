@@ -38,8 +38,8 @@ function ProjectModal({ show, onClose, onCreate }) {
             style={{ width: '100%', marginBottom: 10 }}
           />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-            <button type="button" onClick={onClose} style={{ background: '#ccc' }}>Cancel</button>
-            <button type="submit" style={{ background: '#007bff', color: 'white' }}>Create</button>
+            <button type="button" onClick={onClose} >Cancel</button>
+            <button type="submit">Create</button>
           </div>
         </form>
       </div>
