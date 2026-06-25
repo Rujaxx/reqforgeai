@@ -4,8 +4,10 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 const baseQueryWithRetry = fetchBaseQuery({
   baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/',
   timeout: 70000, // 70 seconds to handle cold starts
-  prepareHeaders: (headers) => {
-    headers.set('Content-Type', 'application/json');
+  prepareHeaders: (headers, { endpoint }) => {
+    if (endpoint !== 'addScreen') {
+      headers.set('Content-Type', 'application/json');
+    }
     return headers;
   },
 });
