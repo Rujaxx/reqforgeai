@@ -22,7 +22,7 @@ if (!GOOGLE_API_KEY) {
 
 const embedder = new GoogleGeminiEmbeddingFunction({
     apiKey: GOOGLE_API_KEY, // Or set GEMINI_API_KEY env var
-    modelName: 'text-embedding-004', // Optional, defaults to latest model
+    modelName: 'gemini-embedding-001', // Optional, defaults to latest model
     taskType: 'SEMANTIC_SIMILARITY', // Optional
 });
 
