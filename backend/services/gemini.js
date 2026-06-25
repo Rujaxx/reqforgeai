@@ -24,7 +24,6 @@ const embedder = new GoogleGeminiEmbeddingFunction({
     apiKey: GOOGLE_API_KEY, // Or set GEMINI_API_KEY env var
     modelName: 'gemini-embedding-001', // Optional, defaults to latest model
     taskType: 'SEMANTIC_SIMILARITY', // Optional
-    dimension: 768,
 });
 
 const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
